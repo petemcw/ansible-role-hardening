@@ -1,0 +1,115 @@
+---
+# Defines tasks applicable across all machines in the infrastructure for basic
+#   security hardening
+
+- name: Include the OS specific varibles
+  include_vars: '{{ ansible_os_family }}.yml'
+  tags:
+    - common
+    - hardening
+
+- name: Remove unnecessary users
+  user: >
+    name={{ item }}
+    state=absent
+  with_items: removable_users
+  tags:
+    - common
+    - hardening
+
+- name: Remove unnecessary groups
+  group: >
+    name={{ item }}
+    state=absent
+  with_items: removable_groups
+  tags:
+    - common
+    - hardening
+
+- name: Set a `nologin` shell for system users
+  user: >
+    name={{ item }}
+    shell=/usr/sbin/nologin
+  with_items: nologin_users
+  tags:
+    - common
+    - hardening
+
+- name: Secure the root user home directory
+  file: >
+    dest=/root
+    state=directory
+    mode=0700
+  tags:
+    - common
+    - hardening
+
+- name: Mount shared memory as read only
+  mount: >
+    name=/dev/shm
+    src=tmpfs
+    fstype=tmpfs
+    opts=defaults,nosuid,nodev,noexec
+    state=present
+  tags:
+    - common
+    - hardening
+
+- name: Limit the use of `su` to admins
+  lineinfile: >
+    dest=/var/lib/dpkg/statoverride
+    regexp="root {{ sysadmin_group }} 4750 \/bin\/su"
+    line="root {{ sysadmin_group }} 4750 /bin/su"
+    state=present
+  when: ansible_os_family == 'Debian'
+  tags:
+    - common
+    - hardening
+
+- name: Tighten up network security
+  template: >
+    src=etc-sysctl-d-10-network-security-conf.j2
+    dest=/etc/sysctl.d/10-network-security.conf
+    mode=0644 owner=root group=root
+  notify: reload sysctl
+  when: ansible_os_family == 'Debian'
+  tags:
+    - common
+    - hardening
+
+- name: Alter `host.conf` to aide in preventing IP spoofing
+  lineinfile: >
+    dest=/etc/host.conf
+    regexp="{{ item.regex }}"
+    line="{{ item.line }}"
+    state=present
+  with_items:
+    - { regex: "^order",
+        line: "order bind,hosts" }
+    - { regex: "^nospoof",
+        line: "nospoof on" }
+  tags:
+    - common
+    - hardening
+
+- name: Install packages for Debian derivatives
+  apt: >
+    pkg={{ item }}
+    state=latest
+  with_items: hardening_packages
+  when: ansible_os_family == 'Debian'
+  tags:
+    - common
+    - hardening
+
+- name: Write iptables configuration templates
+  template: >
+    src=etc-iptables-rules-v4.j2
+    dest=/etc/iptables/rules.v4
+    mode=0644 owner=root group=root
+    backup=yes
+  notify: restart iptables-persistent
+  when: ansible_os_family == 'Debian'
+  tags:
+    - common
+    - hardening

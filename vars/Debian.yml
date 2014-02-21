@@ -1,0 +1,6 @@
+---
+# Defines variables for Debian/Ubuntu
+
+iptables_service: 'iptables-persistent'
+hardening_packages:
+  - 'iptables-persistent'

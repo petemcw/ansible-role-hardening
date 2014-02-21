@@ -1,0 +1,29 @@
+---
+# Defines variables for all systems
+
+removable_users:
+  - games
+  - gnats
+  - irc
+  - list
+  - news
+  - proxy
+  - uucp
+removable_groups:
+  - games
+  - gnats
+  - irc
+  - list
+  - news
+  - proxy
+  - uucp
+nologin_users:
+  - backup
+  - bin
+  - daemon
+  - libuuid
+  - lp
+  - mail
+  - man
+  - nobody
+  - sys

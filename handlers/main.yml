@@ -1,0 +1,12 @@
+---
+# Handlers for hardening notifications.
+
+- name: reload sysctl
+  command: >
+    /sbin/sysctl -p
+
+- name: restart iptables-persistent
+  service: >
+    name={{ iptables_service }}
+    state=restarted
+    enabled=yes

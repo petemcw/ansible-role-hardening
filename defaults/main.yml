@@ -1,0 +1,11 @@
+---
+# The variables file used for hardening playbooks.
+# If not overriden in inventory or as a parameter, this is the value that will be used
+
+hardening_ssh_port: 22
+hardening_mysql_port: 3306
+hardening_webserver_ports:
+  - 80
+  - 443
+hardening_allowed_ips:
+  - "127.0.0.1"

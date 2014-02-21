@@ -1,0 +1,68 @@
+# {{ ansible_managed }}
+*filter
+
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:ANSIBLE - [0:0]
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Drop any tcp packet that does not start a connection with a syn flag.
+-A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Drop any invalid packet that could not be identified.
+-A INPUT -m state --state INVALID -j DROP
+
+# Allow ping from inside to outside
+-A OUTPUT -o eth0 -p icmp --icmp-type echo-request -j ACCEPT
+-A INPUT -i eth0 -p icmp --icmp-type echo-reply -m limit --limit 2/s -j ACCEPT
+
+# Allow ping from outside to inside
+-A INPUT -i eth0 -p icmp --icmp-type echo-request -m limit --limit 2/s -j ACCEPT
+-A OUTPUT -o eth0 -p icmp --icmp-type echo-reply -j ACCEPT
+
+{% if (groups['dbservers']) is defined and inventory_hostname in groups['dbservers'] %}
+# Add MySQL traffic to ANSIBLE chain
+-A INPUT -p tcp -m tcp --dport {{ hardening_mysql_port }} -j ANSIBLE
+{% endif %}
+
+{% if (groups['webservers'] is defined and inventory_hostname in groups['webservers']) %}
+# Allows HTTP and HTTPS connections from anywhere
+{% for port in hardening_webserver_ports %}
+-A INPUT -p tcp --dport {{ port }} -j ACCEPT
+{% endfor %}
+{% endif %}
+
+# Allows SSH connections -- NOTE THE PORT
+-A INPUT -p tcp -m state --state NEW --dport {{ hardening_ssh_port }} -j ACCEPT
+
+# Log dropped packets
+-N LOGGING
+-A INPUT -j LOGGING
+-A LOGGING -p tcp -m limit --limit 5/min --limit-burst 10 -j LOG --log-prefix "iptables: [denied TCP] " --log-level 7
+-A LOGGING -p udp -m limit --limit 5/min --limit-burst 10 -j LOG --log-prefix "iptables: [denied UDP] " --log-level 7
+-A LOGGING -p icmp -m limit --limit 5/min --limit-burst 10 -j LOG --log-prefix "iptables: [denied ICMP] " --log-level 7
+
+# Allows all outbound traffic
+# You can modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Reject all other inbound - default deny unless explicitly allowed policy
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+{% if hardening_allowed_ips is defined %}
+# Allow access to ANSIBLE chain (usually office IPs, MySQL clients, etc)
+{% for ip_addr in hardening_allowed_ips %}
+-A ANSIBLE -s {{ ip_addr }} -j ACCEPT
+{% endfor %}
+{% endif %}
+-A ANSIBLE -j DROP
+
+COMMIT
