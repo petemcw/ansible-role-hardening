@@ -27,12 +27,12 @@
 -A INPUT -i eth0 -p icmp --icmp-type echo-request -m limit --limit 2/s -j ACCEPT
 -A OUTPUT -o eth0 -p icmp --icmp-type echo-reply -j ACCEPT
 
-{% if (groups['dbservers']) is defined and inventory_hostname in groups['dbservers'] %}
+{% if (groups['db_server']) is defined and inventory_hostname in groups['db_server'] %}
 # Add MySQL traffic to ANSIBLE chain
 -A INPUT -p tcp -m tcp --dport {{ hardening_mysql_port }} -j ANSIBLE
 {% endif %}
 
-{% if (groups['webservers'] is defined and inventory_hostname in groups['webservers']) %}
+{% if (groups['web_node'] is defined and inventory_hostname in groups['web_node']) %}
 # Allows HTTP and HTTPS connections from anywhere
 {% for port in hardening_webserver_ports %}
 -A INPUT -p tcp --dport {{ port }} -j ACCEPT
@@ -41,6 +41,9 @@
 
 # Allows SSH connections -- NOTE THE PORT
 -A INPUT -p tcp -m state --state NEW --dport {{ hardening_ssh_port }} -j ACCEPT
+# Blacklist "script kiddes" from brute force attacking
+-A INPUT -p tcp --dport {{ hardening_ssh_port }} -m state --state NEW -m recent --set --name SSH --rsource -j ACCEPT
+-A INPUT -m recent --update --seconds 600 --hitcount 12 --rttl --name SSH --rsource -j DROP
 
 # Log dropped packets
 -N LOGGING

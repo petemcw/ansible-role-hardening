@@ -44,6 +44,23 @@
     - common
     - hardening
 
+- name: Secure the root SSH directory
+  file: >
+    dest=/root/.ssh
+    state=directory
+    mode=0700
+  tags:
+    - common
+    - hardening
+
+- name: Secure the root SSH authorized keys
+  file: >
+    dest=/root/.ssh/authorized_keys
+    mode=0400 owner=root group=root
+  tags:
+    - common
+    - hardening
+
 - name: Mount shared memory as read only
   mount: >
     name=/dev/shm
