@@ -1,6 +1,8 @@
 # Linux Hardening Role for Ansible
 
-This role configures current best practice hardening techniques to help prevent the server from being vulnerable to common attacks. Key points addressed by this role are:
+This role configures current best practice hardening techniques to help prevent
+the server from being vulnerable to common attacks. Key points addressed by this
+role are:
 
 * Removing unused users & groups
 * Mounting `tmpfs` as read-only
@@ -10,7 +12,8 @@ This role configures current best practice hardening techniques to help prevent 
 
 ## Requirements
 
-This role requires [Ansible](http://www.ansibleworks.com/) version 1.4 or higher and the Debian/Ubuntu platform.
+This role requires [Ansible](http://www.ansibleworks.com/) version 1.4 or higher
+and the Debian/Ubuntu platform.
 
 ## Role Variables
 
